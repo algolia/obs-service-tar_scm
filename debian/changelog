@@ -1,3 +1,57 @@
+obs-service-tar-scm (0.10.27) unstable; urgency=medium
+
+  * Update to release 0.10.27
+
+ -- Jeremy Jacque <jeremy.jacque@algolia.com>  Tue, 21 Jul 2021 17:10:19 +0000
+
+obs-service-tar-scm (0.10.20) unstable; urgency=medium
+
+  [ Adrian Schröter ]
+  * fix situation when revision has been modified in _service
+
+  [ Frank Schreiner ]
+  * fix #boo 1168573 (obsservicerun,obsrun) not exists in client side installation
+  * [doc] added allowed urls in documentation of tar_scm.service
+
+  [ Dominique Leuenberger ]
+  * dist: Convert to multibuild; run test suite in a separate flavor
+
+  [ Frank Schreiner ]
+  * [dist] fix for gbp/fedora (python*-base)
+
+  [ hawkeye116477 ]
+  * Build with python 3 for Debian and Ubuntu
+
+  [ Matěj Cepl ]
+  * Remove superflous ')' in an error message.
+
+  [ Frank Schreiner ]
+  * new option '--latest-signed-commit'
+  * new option '--maintainers-asc' and '--last-signed-tag'
+  * additional option verification
+
+  [ Adrian Schröter ]
+  * add license file (issue 257)
+
+  [ Frank Schreiner ]
+  * [dist] prefer python3 over python2
+  * filter dirs with "include" filter option
+
+  [ Adrian Schröter ]
+  * fix build for CentOS adn RHEL 8
+
+  [ Nicholas Brown ]
+  * enable the GBP service
+  * Fix Lintian error about missing python3 dep
+  * Debian X-Python version no longer needed
+  * Debian compat from 8 to 10
+  * Fix priority-extra-is-replaced-by-priority-optional
+  * Fix description-synopsis-starts-with-article
+  * Add missing Debian build-depends
+  * Update debian debhelper dependency
+
+ -- Nicholas Brown <nick.brown@att.com>  Tue, 02 Feb 2021 17:10:19 +0000
+
 obs-service-tar-scm (0.10.14) unstable; urgency=medium
 
   [ Roman Neuhauser ]
