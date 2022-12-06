@@ -7,7 +7,13 @@ import inspect
 import copy
 import unittest
 import six
-from mock import patch
+
+try:
+    from unittest.mock import patch
+except ImportError:
+    from mock import patch
+
+from utils import file_write_legacy
 
 import TarSCM
 
@@ -154,7 +160,8 @@ class UnitTestCases(unittest.TestCase):
         '''Test to get git repocache dir without subdir'''
         scm_object = Git(self.cli, self.tasks)
         scm_object.url = 'https://github.com/openSUSE/obs-service-tar_scm.git'
-        repohash = scm_object.get_repocache_hash(None)
+        scm_object.args.subdir = None
+        repohash = scm_object.get_repocache_hash()
         self.assertEqual(
             repohash,
             'c0f3245498ad916e9ee404acfd7aa59e29d53b7a063a8609735c1284c67b2161')
@@ -165,8 +172,9 @@ class UnitTestCases(unittest.TestCase):
         TarSCM.base.scm.get_repocache_hash
         '''
         scm_object = Git(self.cli, self.tasks)
+        scm_object.args.subdir = 'subdir'
         scm_object.url = 'https://github.com/openSUSE/obs-service-tar_scm.git'
-        repohash = scm_object.get_repocache_hash('subdir')
+        repohash = scm_object.get_repocache_hash()
         self.assertEqual(
             repohash,
             'c0f3245498ad916e9ee404acfd7aa59e29d53b7a063a8609735c1284c67b2161')
@@ -175,7 +183,8 @@ class UnitTestCases(unittest.TestCase):
         '''Test to get svn repocache dir without subdir'''
         scm_object = Svn(self.cli, self.tasks)
         scm_object.url = 'https://github.com/openSUSE/obs-service-tar_scm.git'
-        repohash = scm_object.get_repocache_hash('')
+        scm_object.args.subdir = ''
+        repohash = scm_object.get_repocache_hash()
         self.assertEqual(
             repohash,
             'd5a57bc8ad6a3ecbca514a1a6fb48e2c9ee183ceb5f7d42e9fd5836918bd540c')
@@ -187,7 +196,8 @@ class UnitTestCases(unittest.TestCase):
         '''
         scm_object = Svn(self.cli, self.tasks)
         scm_object.url = 'https://github.com/openSUSE/obs-service-tar_scm.git'
-        repohash = scm_object.get_repocache_hash('subdir')
+        scm_object.args.subdir = 'subdir'
+        repohash = scm_object.get_repocache_hash()
         self.assertEqual(
             repohash,
             'b9761648b96f105d82a97b8a81f1ca060b015a3f882ef9a55ae6b5bf7be0d48a')
@@ -283,14 +293,11 @@ class UnitTestCases(unittest.TestCase):
         print("INFOFILE: '%s'" % info)
 
         # check for slash in name
-        f_h = open(info, 'w')
-        f_h.write(
-            "name: test/test\n" +
-            "version: 0.1.1\n" +
-            "mtime: 1476683264\n" +
-            "commit: fea6eb5f43841d57424843c591b6c8791367a9e5\n"
-        )
-        f_h.close()
+        string = "name: test/test\n" \
+                 "version: 0.1.1\n" \
+                 "mtime: 1476683264\n" \
+                 "commit: fea6eb5f43841d57424843c591b6c8791367a9e5\n"
+        file_write_legacy(info, string)
         os.chdir(wdir)
         six.assertRaisesRegex(
             self,
@@ -300,14 +307,11 @@ class UnitTestCases(unittest.TestCase):
         )
 
         # check for slash in version
-        f_h = open(info, 'w')
-        f_h.write(
-            "name: test\n" +
-            "version: a/0.1.1\n" +
-            "mtime: 1476683264\n" +
-            "commit: fea6eb5f43841d57424843c591b6c8791367a9e5\n"
-        )
-        f_h.close()
+        string = "name: test\n" \
+                 "version: a/0.1.1\n" \
+                 "mtime: 1476683264\n" \
+                 "commit: fea6eb5f43841d57424843c591b6c8791367a9e5\n"
+        file_write_legacy(info, string)
         os.chdir(wdir)
         six.assertRaisesRegex(
             self,
@@ -317,14 +321,11 @@ class UnitTestCases(unittest.TestCase):
         )
 
         # check for .. in version
-        f_h = open(info, 'w')
-        f_h.write(
-            "name: test\n" +
-            "version: ..0.1.1\n" +
-            "mtime: 1476683264\n" +
-            "commit: fea6eb5f43841d57424843c591b6c8791367a9e5\n"
-        )
-        f_h.close()
+        string = "name: test\n" \
+                 "version: ..0.1.1\n" \
+                 "mtime: 1476683264\n" \
+                 "commit: fea6eb5f43841d57424843c591b6c8791367a9e5\n"
+        file_write_legacy(info, string)
         os.chdir(wdir)
         six.assertRaisesRegex(
             self,
@@ -357,3 +358,11 @@ class UnitTestCases(unittest.TestCase):
         self.assertEqual(tc_name, bname)
         self.assertEqual('%s-%s' % (tc_name, version), dst)
         self.assertEqual(chgv, version)
+
+    def test_cache_locking(self):
+        scm     = Git(self.cli, self.tasks)
+        scm.clone_dir = '.'
+        scm.lock_cache()
+        fname = scm.lock_file.name
+        scm.unlock_cache()
+        assert os.path.exists(fname) == 0

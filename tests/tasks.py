@@ -1,12 +1,16 @@
 from __future__ import print_function
 
-import sys
 import os
 import inspect
 import shutil
 import unittest
-import six
-from mock import MagicMock
+import io
+
+try:
+    # pylint: disable=ungrouped-imports
+    from unittest.mock import MagicMock
+except ImportError:
+    from mock import MagicMock
 
 from tar_scm import TarSCM
 from tests.fake_classes import FakeSCM
@@ -34,10 +38,13 @@ class TasksTestCases(unittest.TestCase):
         self.cli.parse_args(['--outdir', self.outdir, '--scm', 'git'])
         self.cli.snapcraft  = True
 
-    def _cd_fixtures_dir(self):
+    def _cd_fixtures_dir(self, *args):
         self.cur_dir = os.getcwd()
         cl_name = self.__class__.__name__
         fn_name = inspect.stack()[1][3]
+        if args:
+            fn_name = args[0]
+
         try:
             os.chdir(os.path.join(self.basedir, 'fixtures', cl_name, fn_name))
         except OSError:
@@ -52,19 +59,22 @@ class TasksTestCases(unittest.TestCase):
                   os.getcwd())
             raise
 
+    def _generate_tl_common(self, expected, func):
+        self._cd_fixtures_dir(func)
+        tasks = TarSCM.Tasks(self.cli)
+        tasks.generate_list()
+        self._restore_cwd()
+        for key, val in expected.items():
+            self.assertEqual(tasks.task_list[0].__dict__[key], val)
+        self.assertEqual(len(tasks.task_list), 1)
+
     def test_generate_tl_single_task(self):
         expected = {
             'scm': 'bzr', 'clone_prefix': '_obs_', 'snapcraft': True,
             'revision': None, 'url': 'lp:~mterry/libpipeline/printf',
             'filename': 'libpipeline', 'use_obs_scm': True,
             'outdir': self.cli.outdir, 'changesgenerate': False}
-        self._cd_fixtures_dir()
-        tasks = TarSCM.Tasks(self.cli)
-        tasks.generate_list()
-        self._restore_cwd()
-        for k in expected:
-            self.assertEqual(tasks.task_list[0].__dict__[k], expected[k])
-        self.assertEqual(len(tasks.task_list), 1)
+        self._generate_tl_common(expected, 'test_generate_tl_single_task')
 
     def test_generate_tl_st_appimage(self):
         '''Test generates task list with single task from appimage.yml'''
@@ -78,13 +88,7 @@ class TasksTestCases(unittest.TestCase):
             'outdir': self.cli.outdir,
             'changesgenerate': False
         }
-        self._cd_fixtures_dir()
-        tasks = TarSCM.Tasks(self.cli)
-        tasks.generate_list()
-        self._restore_cwd()
-        for k in expected:
-            self.assertEqual(tasks.task_list[0].__dict__[k], expected[k])
-        self.assertEqual(len(tasks.task_list), 1)
+        self._generate_tl_common(expected, 'test_generate_tl_st_appimage')
 
     def test_appimage_empty_build(self):
         self.cli.snapcraft = False
@@ -165,10 +169,9 @@ version: 1.0
         tasks.generate_list()
         tasks.finalize()
         self._restore_cwd()
-        scf = open(os.path.join(self.cli.outdir,
-                                '_service:snapcraft:snapcraft.yaml'), 'r')
-        got = scf.read()
-        scf.close()
+        snf = os.path.join(self.cli.outdir,'_service:snapcraft:snapcraft.yaml')
+        with io.open(snf, 'r', encoding='utf-8') as scf:
+            got = scf.read()
         self.assertEqual(got, expected)
 
     def test_cleanup(self):

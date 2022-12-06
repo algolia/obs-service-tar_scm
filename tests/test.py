@@ -24,7 +24,6 @@ from tests.tartests import TarTestCases
 from tests.archiveobscpiotestcases import ArchiveOBSCpioTestCases
 
 
-
 def str_to_class(string):
     '''Convert string into class'''
     return getattr(sys.modules[__name__], string)
@@ -71,6 +70,7 @@ def prepare_testsuite(tclasses):
             to_run = {}
             for arg in sys.argv[1:]:
                 rmatch = re.match('^/(.+)/$', arg)
+                # pylint: disable=unnecessary-lambda-assignment
                 if rmatch:
                     # regexp mode
                     regexp = rmatch.group(1)
@@ -103,7 +103,7 @@ def main():
 
     # Cleanup:
     if result.wasSuccessful():
-        if os.path.exists(TestEnvironment.tmp_dir):
+        if os.path.exists(TestEnvironment.tmp_dir) and not os.environ.get('TAR_SCM_SKIP_CLEANUP'):
             shutil.rmtree(TestEnvironment.tmp_dir)
         sys.exit(0)
     else:

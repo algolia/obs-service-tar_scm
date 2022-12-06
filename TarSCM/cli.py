@@ -26,7 +26,7 @@ def check_locale(loc):
         aloc_tmp, _ = subprocess.Popen(['locale', '-a'],
                                        stdout=subprocess.PIPE,
                                        stderr=subprocess.STDOUT).communicate()
-    aloc = dict()
+    aloc = {}
 
     for tloc in aloc_tmp.split(b'\n'):
         aloc[tloc] = 1
@@ -44,12 +44,20 @@ def check_locale(loc):
 
 class Cli():
     # pylint: disable=too-few-public-methods
+    # pylint: disable=too-many-instance-attributes
     DEFAULT_AUTHOR = 'obs-service-tar-scm@invalid'
+    outdir = None
 
     def __init__(self):
         self.use_obs_scm = False
         self.snapcraft   = False
         self.appimage    = False
+        self.maintainers_asc = None
+        self.url = None
+        self.revision = None
+        self.user = None
+        self.keyring_passphrase = None
+        self.changesgenerate = False
 
     def parse_args(self, options):
         parser = argparse.ArgumentParser(description='Git Tarballs')
@@ -197,7 +205,8 @@ class Cli():
 
         args.outdir = os.path.abspath(args.outdir)
         orig_subdir = args.subdir
-        args.subdir = os.path.normpath(orig_subdir)
+        if orig_subdir:
+            args.subdir = os.path.normpath(orig_subdir)
         if args.subdir.startswith('/'):
             sys.exit("Absolute path '%s' is not allowed for --subdir" %
                      orig_subdir)

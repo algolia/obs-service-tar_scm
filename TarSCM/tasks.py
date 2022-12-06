@@ -13,16 +13,18 @@ import sys
 import re
 import locale
 import json
+import io
 import yaml
 
 import TarSCM.scm
 import TarSCM.archive
-from TarSCM.helpers import Helpers
+from TarSCM.helpers import Helpers, file_write_legacy
 from TarSCM.changes import Changes
 from TarSCM.exceptions import OptionsError
 
 
 class Tasks():
+    # pylint: disable=too-many-branches
     '''
     Class to create a task list for formats which can contain more then one scm
     job like snapcraft or appimage
@@ -67,9 +69,8 @@ class Tasks():
 
         if args.appimage:
             # we read the SCM config from appimage.yml
-            filehandle = open('appimage.yml')
-            self.data_map = yaml.safe_load(filehandle)
-            filehandle.close()
+            with io.open('appimage.yml', encoding='utf-8') as filehandle:
+                self.data_map = yaml.safe_load(filehandle)
             args.use_obs_scm = True
             build_scms = ()
             try:
@@ -88,9 +89,8 @@ class Tasks():
         elif args.snapcraft:
             # we read the SCM config from snapcraft.yaml instead
             # getting it via parameters
-            filehandle = open('snapcraft.yaml')
-            self.data_map = yaml.safe_load(filehandle)
-            filehandle.close()
+            with io.open('snapcraft.yaml', encoding='utf-8') as filehandle:
+                self.data_map = yaml.safe_load(filehandle)
             args.use_obs_scm = True
             # run for each part an own task
             for part in self.data_map['parts'].keys():
@@ -108,6 +108,18 @@ class Tasks():
                 del self.data_map['parts'][part]['source-type']
                 self.task_list.append(copy.copy(args))
 
+        # only try to autodetect obsinfo files if no obsinfo file is given
+        # as cli parameter
+        elif args.scm == 'tar' and args.obsinfo is None:
+            # use all obsinfo files in cwd if none are given
+            files = glob.glob('*.obsinfo')
+            if files:
+                for obsinfo in files:
+                    args.obsinfo = obsinfo
+                    self.task_list.append(copy.copy(args))
+            else:
+                # Fallback if there are no obsinfo files
+                self.task_list.append(args)
         else:
             self.task_list.append(args)
 
@@ -126,11 +138,10 @@ class Tasks():
         if args.snapcraft:
             # write the new snapcraft.yaml file
             # we prefix our own here to be sure to not overwrite user files,
-            # if he is using us in "disabled" mode
+            # if they are using it in "disabled" mode
             new_file = args.outdir + '/_service:snapcraft:snapcraft.yaml'
-            with open(new_file, 'w') as outfile:
-                outfile.write(yaml.dump(self.data_map,
-                                        default_flow_style=False))
+            yml_str = yaml.dump(self.data_map, default_flow_style=False)
+            file_write_legacy(new_file, yml_str)
 
         # execute also download_files for downloading single sources
         if args.snapcraft or args.appimage:
@@ -152,8 +163,8 @@ class Tasks():
             return args
 
         # is it a branch request?
-        ofh = open("_branch_request", "r")
-        dat = json.load(ofh)
+        with io.open("_branch_request", "r", encoding='utf-8') as ofh:
+            dat = json.load(ofh)
         if dat.get('object_kind') == 'merge_request':
             # gitlab merge request
             args.url = dat['project']['http_url']
@@ -171,6 +182,7 @@ class Tasks():
         '''
         do the work for a single task
         '''
+
         self.args = self.check_for_branch_request()
 
         logging.basicConfig(format="%(message)s", stream=sys.stderr,

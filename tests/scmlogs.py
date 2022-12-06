@@ -3,6 +3,9 @@ from __future__ import print_function
 import glob
 import os
 import tempfile
+import io
+
+from utils import file_write_legacy
 
 
 class ScmInvocationLogs:
@@ -66,7 +69,7 @@ class ScmInvocationLogs:
     def get_log_path(self, identifier):
         return os.path.join(self.test_dir, self.get_log_file(identifier))
 
-    def next(self, identifier=''):
+    def nextlog(self, identifier=''):
         self.counter += 1
         self.current_log_path = self.get_log_path(identifier)
         if os.path.exists(self.current_log_path):
@@ -75,16 +78,12 @@ class ScmInvocationLogs:
         os.environ['SCM_INVOCATION_LOG'] = self.current_log_path
 
     def annotate(self, msg):
-        log = open(self.current_log_path, 'a')
-        log.write('# ' + msg + "\n")
         print(msg)
-        log.close()
+        file_write_legacy(self.current_log_path, '# ' + msg + "\n", 'a')
 
     def read(self):
         if not os.path.exists(self.current_log_path):
             return '<no %s log>' % self.scm
-
-        log = open(self.current_log_path)
-        loglines = log.readlines()
-        log.close()
+        with io.open(self.current_log_path, 'r', encoding="UTF-8") as log:
+            loglines = log.readlines()
         return loglines

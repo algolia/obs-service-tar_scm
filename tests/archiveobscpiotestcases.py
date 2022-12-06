@@ -6,6 +6,7 @@ import re
 import inspect
 import shutil
 import unittest
+import io
 import six
 import yaml
 
@@ -37,7 +38,7 @@ class ArchiveOBSCpioTestCases(unittest.TestCase):
         f_dir                = os.path.join(self.fixtures_dir, tc_name, 'repo')
         shutil.copytree(f_dir, c_dir)
         scmlogs              = ScmInvocationLogs('git', c_dir)
-        scmlogs.next('start-test') # pylint: disable=E1102
+        scmlogs.nextlog('start-test')
         fixture              = GitFixtures(c_dir, scmlogs)
         fixture.init()
         scm_object           = Git(self.cli, self.tasks)
@@ -54,7 +55,7 @@ class ArchiveOBSCpioTestCases(unittest.TestCase):
         arch.create_archive(
             scm_object,
             cli      = self.cli,
-            basename = bname ,
+            basename = bname,
             dstname  = dst,
             version  = chgv
         )
@@ -62,12 +63,14 @@ class ArchiveOBSCpioTestCases(unittest.TestCase):
         infofile = os.path.join(outdir, bname + ".obsinfo")
         self.assertTrue(os.path.isfile(cpiofile))
         self.assertTrue(os.path.isfile(infofile))
-        data = yaml.safe_load(open(infofile, 'r'))
-        self.assertDictEqual(data,{
-            'name': bname,
-            'version': chgv,
-            'mtime': 1234567890,
-            'commit': data['commit']})
+        with io.open(infofile, 'r', encoding='UTF-8') as fhl:
+            data = yaml.safe_load(fhl)
+        self.assertDictEqual(
+            data, {
+                'name': bname,
+                'version': chgv,
+                'mtime': 1234567890,
+                'commit': data['commit']})
 
     def test_obscpio_extract_of(self):
         '''
@@ -152,7 +155,7 @@ class ArchiveOBSCpioTestCases(unittest.TestCase):
         cl_name              = self.__class__.__name__
         c_dir                = os.path.join(self.tmp_dir, tc_name)
         scmlogs              = ScmInvocationLogs('git', c_dir)
-        scmlogs.next('start-test')  # pylint: disable=E1102
+        scmlogs.nextlog('start-test')
         fixture              = GitFixtures(c_dir, scmlogs)
         fixture.init()
         scm_object           = Git(self.cli, self.tasks)

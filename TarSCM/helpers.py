@@ -4,12 +4,24 @@ import datetime
 import os
 import logging
 import subprocess
+import io
 
 # python3 renaming of StringIO
 try:
     import StringIO
 except:
     from io import StringIO
+
+
+def file_write_legacy(fname, string, *args):
+    '''function to write string to file python 2/3 compatible'''
+    mode = 'w'
+    if args:
+        mode = args[0]
+
+    with io.open(fname, mode, encoding='utf-8') as outfile:
+        # 'str().encode().decode()' is required for pyhton 2/3 compatibility
+        outfile.write(str(string).encode('UTF-8').decode('UTF-8'))
 
 
 class Helpers():
@@ -53,8 +65,9 @@ class Helpers():
         return (proc.returncode, output)
 
     def safe_run(self, cmd, cwd, interactive=False):
-        """Execute the command cmd in the working directory cwd and check return
-        value. If the command returns non-zero raise a SystemExit exception.
+        """Execute the command cmd in the working directory cwd and check
+        return value. If the command returns non-zero raise a SystemExit
+        exception.
         """
         result = self.run_cmd(cmd, cwd, interactive, raisesysexit=True)
         return result
