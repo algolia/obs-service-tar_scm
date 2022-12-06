@@ -1,3 +1,9 @@
+obs-service-tar-scm (0.10.34) unstable; urgency=medium
+
+  * Update to release 0.10.34
+
+ -- Jeremy Jacque <jeremy.jacque@algolia.com>  Tue,  6 Dec 2022 14:10:19 +0000
+
 obs-service-tar-scm (0.10.27) unstable; urgency=medium
 
   * Update to release 0.10.27
